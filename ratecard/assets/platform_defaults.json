@@ -1,0 +1,19 @@
+{
+  "cpm_baselines_idr": {
+    "instagram": 85000,
+    "tiktok": 70000,
+    "youtube": 120000,
+    "twitter": 45000,
+    "linkedin": 200000,
+    "facebook": 60000
+  },
+  "benchmark_engagement_rates": {
+    "instagram": 0.035,
+    "tiktok": 0.06,
+    "youtube": 0.04,
+    "twitter": 0.02,
+    "linkedin": 0.025,
+    "facebook": 0.015
+  },
+  "er_weight": 0.5
+}

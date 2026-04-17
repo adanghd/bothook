@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% set badge = {'draft': 'secondary', 'sent': 'primary', 'accepted': 'success', 'rejected': 'danger'} %}
+
+{% set pm_badge = {'flat': 'info', 'commission': 'warning', 'hybrid': 'primary'} %}
+{% set pm_icon = {'flat': '💵', 'commission': '🤝', 'hybrid': '🔀'} %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="fw-bold mb-1">Proposal #{{ proposal.id }}</h3>
+    <span class="badge bg-{{ badge.get(proposal.status.value, 'secondary') }} fs-6">
+      {{ proposal.status.value.upper() }}
+    </span>
+    <span class="badge bg-{{ pm_badge.get(proposal.pricing_model.value, 'secondary') }} fs-6 ms-1">
+      {{ pm_icon.get(proposal.pricing_model.value, '') }} {{ PRICING_MODEL_LABELS[proposal.pricing_model] }}
+    </span>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="/proposal/{{ proposal.id }}/edit" class="btn btn-outline-primary">
+      <i class="bi bi-pencil-square"></i> Edit
+    </a>
+    <form method="POST" action="/proposal/{{ proposal.id }}/duplicate" class="d-inline">
+      <button type="submit" class="btn btn-outline-secondary">
+        <i class="bi bi-copy"></i> Duplicate
+      </button>
+    </form>
+    <a href="/proposal/{{ proposal.id }}/pdf" class="btn btn-outline-danger">
+      <i class="bi bi-file-pdf"></i> Download PDF
+    </a>
+    <a href="/proposals" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> Kembali
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Left: Details -->
+  <div class="col-lg-8">
+
+    <!-- Client Info -->
+    <div class="card mb-4">
+      <div class="card-header fw-bold"><i class="bi bi-building"></i> Info Klien</div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-sm-6">
+            <small class="text-muted d-block">Nama Klien</small>
+            <strong>{{ proposal.client_name }}</strong>
+          </div>
+          <div class="col-sm-6">
+            <small class="text-muted d-block">Perusahaan</small>
+            <strong>{{ proposal.client_company or '—' }}</strong>
+          </div>
+          <div class="col-sm-6">
+            <small class="text-muted d-block">Email</small>
+            <span>{{ proposal.client_email or '—' }}</span>
+          </div>
+          <div class="col-sm-6">
+            <small class="text-muted d-block">Campaign</small>
+            <span>{{ proposal.campaign_name }}</span>
+          </div>
+          <div class="col-sm-6">
+            <small class="text-muted d-block">Dibuat</small>
+            <span>{{ proposal.created_at.strftime('%d %B %Y') if proposal.created_at else '—' }}</span>
+          </div>
+          {% if proposal.sent_at %}
+          <div class="col-sm-6">
+            <small class="text-muted d-block">Dikirim</small>
+            <span>{{ proposal.sent_at.strftime('%d %B %Y') }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Packages -->
+    {% for pkg in proposal.packages %}
+    {% set tier_lower = pkg.tier.value.lower() %}
+    <div class="card mb-4">
+      <div class="card-header tier-header-{{ tier_lower }} d-flex justify-content-between">
+        <span class="fw-bold">
+          {% if tier_lower == 'bronze' %}🥉{% elif tier_lower == 'silver' %}🥈{% else %}🥇{% endif %}
+          {{ pkg.name }}
+        </span>
+        <span class="fw-bold">{{ format_idr(pkg.final_price) }}</span>
+      </div>
+      <div class="card-body">
+        <table class="table table-sm mb-1">
+          <thead class="table-light">
+            <tr>
+              <th>Konten</th>
+              <th class="text-center">Qty</th>
+              <th class="text-end">Harga Satuan</th>
+              <th class="text-end">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in pkg.items %}
+            <tr>
+              <td>
+                {{ item.content_type.value.replace('_',' ').title() }}
+                {% if item.usage_rights_days %}
+                  <small class="text-muted"> · usage rights {{ item.usage_rights_days }}hr</small>
+                {% endif %}
+                {% if item.exclusivity_days %}
+                  <small class="text-muted"> · exclusivity {{ item.exclusivity_days }}hr</small>
+                {% endif %}
+              </td>
+              <td class="text-center">{{ item.quantity }}</td>
+              <td class="text-end">{{ format_idr(item.unit_price) }}</td>
+              <td class="text-end">{{ format_idr(item.unit_price * item.quantity) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="table-light">
+              <td colspan="3" class="text-end">Subtotal Konten</td>
+              <td class="text-end fw-bold">{{ format_idr(pkg.base_price) }}</td>
+            </tr>
+            {% if pkg.bundle_discount_pct > 0 %}
+            <tr>
+              <td colspan="3" class="text-end text-success">
+                Bundle Discount ({{ (pkg.bundle_discount_pct * 100)|int }}%)
+              </td>
+              <td class="text-end text-success">- {{ format_idr(pkg.base_price * pkg.bundle_discount_pct) }}</td>
+            </tr>
+            {% endif %}
+            {% if pkg.addons %}
+            {% for addon in pkg.addons %}
+            <tr>
+              <td colspan="3" class="text-end">
+                {{ ADDON_LABELS[addon.addon_type] }}
+                {% if addon.quantity > 1 %} × {{ addon.quantity }}{% endif %}
+                {% if addon.included_in_tier %}
+                  <span class="badge bg-success bg-opacity-10 text-success border ms-1">INCLUDED</span>
+                {% endif %}
+              </td>
+              <td class="text-end {% if addon.included_in_tier %}text-muted text-decoration-line-through{% endif %}">
+                {% if addon.included_in_tier %}{{ format_idr(addon.price) }}{% else %}+ {{ format_idr(addon.price * addon.quantity) }}{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+            {% endif %}
+            {% if pkg.client_discount_pct > 0 %}
+            <tr>
+              <td colspan="3" class="text-end text-success">
+                Diskon Klien ({{ (pkg.client_discount_pct * 100)|int }}%)
+              </td>
+              <td class="text-end text-success">- {{ format_idr((pkg.base_price * (1 - pkg.bundle_discount_pct) + pkg.addon_total) * pkg.client_discount_pct) }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+              <td colspan="3" class="text-end fw-bold" style="color:var(--brand)">TOTAL</td>
+              <td class="text-end fw-bold fs-5" style="color:var(--brand)">{{ format_idr(pkg.final_price) }}</td>
+            </tr>
+          </tfoot>
+        </table>
+        <!-- Tier perks -->
+        {% set tier_bonus = TIER_BONUSES.get(pkg.tier, {}) %}
+        {% if tier_bonus.get('perks') %}
+        <div class="mt-2 mb-1">
+          {% for perk in tier_bonus.perks %}
+          <span class="badge bg-success bg-opacity-10 text-success border me-1 mb-1"><i class="bi bi-check2"></i> {{ perk }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <small class="text-muted">Valid {{ pkg.valid_days }} hari</small>
+      </div>
+    </div>
+    {% endfor %}
+
+    {% if proposal.affiliate_terms %}
+    {% set aff = proposal.affiliate_terms %}
+    <div class="card mb-4" style="border:2px solid var(--brand);">
+      <div class="card-header fw-bold" style="background:var(--brand);color:white;">
+        <i class="bi bi-bag-heart"></i> Affiliate Deal Terms
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <small class="text-muted d-block">Komisi</small>
+            <strong class="fs-4" style="color:var(--brand)">{{ "%.1f"|format(aff.commission_pct * 100) }}%</strong>
+            <small class="text-muted d-block">dari total GMV</small>
+          </div>
+          {% if aff.base_fee > 0 %}
+          <div class="col-md-6">
+            <small class="text-muted d-block">Base Fee (Flat)</small>
+            <strong class="fs-4">{{ format_idr(aff.base_fee) }}</strong>
+            <small class="text-muted d-block">upfront</small>
+          </div>
+          {% endif %}
+        </div>
+        <hr>
+        <table class="table table-sm mb-0">
+          <tbody>
+            <tr>
+              <td class="text-muted">Durasi Deal</td>
+              <td class="text-end">{{ aff.duration_days }} hari</td>
+            </tr>
+            {% if aff.min_campaign_value > 0 %}
+            <tr>
+              <td class="text-muted">Min. Campaign GMV</td>
+              <td class="text-end">{{ format_idr(aff.min_campaign_value) }}</td>
+            </tr>
+            {% endif %}
+            {% if aff.projected_gmv > 0 %}
+            <tr>
+              <td class="text-muted">Projected GMV</td>
+              <td class="text-end">{{ format_idr(aff.projected_gmv) }}</td>
+            </tr>
+            {% endif %}
+            {% if aff.projected_earning > 0 %}
+            <tr>
+              <td class="text-muted">Projected Earning (komisi)</td>
+              <td class="text-end fw-bold" style="color:var(--brand)">{{ format_idr(aff.projected_earning) }}</td>
+            </tr>
+            {% endif %}
+            {% if aff.exclusivity_days > 0 %}
+            <tr>
+              <td class="text-muted">Exclusivity</td>
+              <td class="text-end">{{ aff.exclusivity_days }} hari</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+        {% if aff.categories %}
+        <div class="mt-3 pt-2 border-top">
+          <small class="text-muted"><i class="bi bi-tags"></i> Kategori yang di-cover:</small>
+          <div class="mt-1">
+            {% for cat in aff.categories %}<span class="badge bg-light text-dark border me-1">{{ cat }}</span>{% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        {% if proposal.pricing_model.value == 'hybrid' %}
+        <div class="alert alert-light border mt-3 mb-0 small">
+          <i class="bi bi-info-circle"></i> Hybrid = Base fee upfront + komisi dari penjualan. Total estimasi di sidebar.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Payment Terms -->
+    <div class="card mb-4">
+      <div class="card-header fw-bold"><i class="bi bi-credit-card"></i> Skema Pembayaran</div>
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-3">
+          <span class="fs-5 me-2">
+            {% if proposal.payment_scheme.value == 'full_upfront' %}💵
+            {% elif proposal.payment_scheme.value == 'dp_50' %}✅
+            {% elif proposal.payment_scheme.value == 'dp_30' %}⚠️
+            {% else %}🕐{% endif %}
+          </span>
+          <div>
+            <strong>{{ PAYMENT_SCHEME_LABELS[proposal.payment_scheme] }}</strong>
+            {% if proposal.payment_fee_pct > 0 %}
+            <span class="badge bg-warning text-dark ms-2">+{{ (proposal.payment_fee_pct * 100)|int }}% fee</span>
+            {% else %}
+            <span class="badge bg-success ms-2">No fee</span>
+            {% endif %}
+          </div>
+        </div>
+        <table class="table table-sm mb-0">
+          <tbody>
+            <tr>
+              <td class="text-muted">Harga Dasar</td>
+              <td class="text-end">{{ format_idr(proposal.total_price) }}</td>
+            </tr>
+            {% if proposal.payment_fee_pct > 0 %}
+            <tr>
+              <td class="text-muted">Fee Pembayaran (+{{ (proposal.payment_fee_pct * 100)|int }}%)</td>
+              <td class="text-end text-warning">+ {{ format_idr(proposal.payment_fee_amount) }}</td>
+            </tr>
+            {% endif %}
+            <tr class="table-light">
+              <td class="fw-bold" style="color:var(--brand)">Grand Total</td>
+              <td class="text-end fw-bold fs-5" style="color:var(--brand)">{{ format_idr(proposal.grand_total) }}</td>
+            </tr>
+            {% if proposal.dp_amount > 0 and proposal.dp_amount < proposal.grand_total %}
+            <tr>
+              <td class="text-muted"><i class="bi bi-arrow-right"></i> DP / Bayar Awal</td>
+              <td class="text-end fw-bold">{{ format_idr(proposal.dp_amount) }}</td>
+            </tr>
+            <tr>
+              <td class="text-muted"><i class="bi bi-arrow-right"></i> Sisa (Setelah Tayang)</td>
+              <td class="text-end">{{ format_idr(proposal.remaining_amount) }}</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if proposal.notes %}
+    <div class="card mb-4">
+      <div class="card-header fw-bold">Catatan</div>
+      <div class="card-body">{{ proposal.notes }}</div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- Right: Actions -->
+  <div class="col-lg-4">
+    <div class="card mb-4">
+      <div class="card-header fw-bold">
+        {% if proposal.pricing_model.value == 'commission' %}Est. Earning (Commission)
+        {% elif proposal.pricing_model.value == 'hybrid' %}Total (Base + Est. Komisi)
+        {% else %}Total Investasi{% endif %}
+      </div>
+      <div class="card-body text-center">
+        <div class="price-big display-6 mb-2">{{ format_idr(proposal.grand_total) }}</div>
+        {% if proposal.payment_fee_pct > 0 %}
+          <small class="text-muted d-block">Base: {{ format_idr(proposal.total_price) }} + fee {{ (proposal.payment_fee_pct * 100)|int }}%</small>
+        {% endif %}
+        {% if proposal.pricing_model.value == 'commission' %}
+          <small class="text-muted">Proyeksi — aktual = GMV × {{ "%.1f"|format(proposal.affiliate_terms.commission_pct * 100) if proposal.affiliate_terms else 0 }}%</small>
+        {% elif proposal.pricing_model.value == 'hybrid' %}
+          <small class="text-muted">{{ proposal.packages|length }} paket + affiliate</small>
+        {% else %}
+          <small class="text-muted">{{ proposal.packages|length }} paket</small>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header fw-bold">Update Status</div>
+      <div class="card-body d-grid gap-2">
+        <form method="POST" action="/proposal/{{ proposal.id }}/status/sent">
+          <button class="btn btn-primary w-100" {% if proposal.status.value == 'sent' %}disabled{% endif %}>
+            <i class="bi bi-send"></i> Mark as Sent
+          </button>
+        </form>
+        <form method="POST" action="/proposal/{{ proposal.id }}/status/accepted">
+          <button class="btn btn-success w-100" {% if proposal.status.value == 'accepted' %}disabled{% endif %}>
+            <i class="bi bi-check-circle"></i> Mark as Accepted
+          </button>
+        </form>
+        <form method="POST" action="/proposal/{{ proposal.id }}/status/rejected">
+          <button class="btn btn-outline-danger w-100" {% if proposal.status.value == 'rejected' %}disabled{% endif %}>
+            <i class="bi bi-x-circle"></i> Mark as Rejected
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

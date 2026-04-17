@@ -1,0 +1,1024 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h3 class="fw-bold mb-4">Profil & Stats Platform</h3>
+
+<form method="POST">
+  <!-- Creator Info -->
+  <div class="card mb-4">
+    <div class="card-header fw-bold"><i class="bi bi-person-circle"></i> Info Creator</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Nama <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" name="name" value="{{ profile.name if profile else '' }}" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Niche / Kategori</label>
+          <input type="text" class="form-control" name="niche" value="{{ profile.niche if profile else '' }}" placeholder="Lifestyle, Tech, Fashion...">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Lokasi</label>
+          <input type="text" class="form-control" name="location" value="{{ profile.location if profile else '' }}" placeholder="Jakarta, Indonesia">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Email Kontak</label>
+          <input type="email" class="form-control" name="contact_email" value="{{ profile.contact_email if profile else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Brand Color</label>
+          <div class="input-group">
+            <input type="color" class="form-control form-control-color" name="brand_color_hex"
+                   value="{{ profile.brand_color_hex if profile else '#E91E8C' }}">
+            <input type="text" class="form-control" value="{{ profile.brand_color_hex if profile else '#E91E8C' }}"
+                   id="color_preview" readonly>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Platform Stats -->
+  <div class="card mb-4">
+    <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-graph-up-arrow"></i> Stats Per Platform</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse"
+              data-bs-target="#help-stats">
+        <i class="bi bi-question-circle"></i> Cara Isi
+      </button>
+    </div>
+
+    <!-- Help section (collapsible) -->
+    <div class="collapse" id="help-stats">
+      <div class="card-body border-bottom bg-light small">
+        <style>
+          .mini-screen {
+            background: white;
+            border: 1.5px solid #ced4da;
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-size: 0.8rem;
+            margin-top: 6px;
+          }
+          .mini-screen .screen-title {
+            font-weight: 700;
+            font-size: 0.72rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding-bottom: 5px;
+            border-bottom: 1px dashed #dee2e6;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+          }
+          .mini-screen .screen-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 3px 6px;
+            border-radius: 4px;
+            margin: 2px 0;
+            color: #495057;
+          }
+          .mini-screen .screen-row.hl {
+            background: rgba(233, 30, 140, 0.12);
+            border-left: 3px solid var(--brand, #E91E8C);
+            font-weight: 700;
+            color: #212529;
+          }
+          .mini-screen .screen-row.hl::after {
+            content: "← INI";
+            color: var(--brand, #E91E8C);
+            font-size: 0.65rem;
+            margin-left: 6px;
+            letter-spacing: 0.5px;
+          }
+          .profile-preview {
+            background: linear-gradient(135deg, #feda75 0%, #fa7e1e 25%, #d62976 50%, #962fbf 75%, #4f5bd5 100%);
+            border-radius: 10px;
+            padding: 10px 12px;
+            color: white;
+            font-size: 0.8rem;
+            margin-top: 6px;
+          }
+          .profile-preview .pp-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.3);
+          }
+          .profile-preview .pp-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 8px;
+          }
+          .profile-preview .pp-stat {
+            text-align: center;
+            padding: 5px 8px;
+            border-radius: 6px;
+            flex: 1;
+          }
+          .profile-preview .pp-stat.hl {
+            background: rgba(255,255,255,0.28);
+            border: 2px dashed white;
+          }
+          .profile-preview .pp-num { font-weight: 700; font-size: 1.05rem; }
+          .profile-preview .pp-lbl { font-size: 0.68rem; opacity: 0.95; }
+          .formula-box {
+            background: white;
+            border: 2px dashed var(--brand, #E91E8C);
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-top: 6px;
+            text-align: center;
+            font-size: 0.85rem;
+          }
+          .formula-box .f-fraction {
+            display: inline-block;
+            vertical-align: middle;
+            text-align: center;
+            margin: 0 4px;
+          }
+          .formula-box .f-top, .formula-box .f-bot {
+            padding: 2px 8px;
+            font-weight: 700;
+          }
+          .formula-box .f-top { border-bottom: 2px solid #212529; }
+          .formula-box .f-op { color: var(--brand, #E91E8C); font-weight: 700; padding: 0 4px; font-size: 1rem; }
+
+          /* Step-by-step guide */
+          .platform-tabs .nav-link {
+            color: #495057;
+            font-weight: 600;
+            border: none;
+            border-bottom: 3px solid transparent;
+            padding: 8px 14px;
+            background: transparent;
+          }
+          .platform-tabs .nav-link.active {
+            color: var(--brand, #E91E8C);
+            border-bottom-color: var(--brand, #E91E8C);
+            background: transparent;
+          }
+          .step-flow {
+            display: flex;
+            gap: 4px;
+            align-items: flex-start;
+            overflow-x: auto;
+            padding: 10px 2px 14px;
+            scrollbar-width: thin;
+          }
+          .phone-step {
+            flex: 0 0 auto;
+            width: 130px;
+            text-align: center;
+          }
+          .phone-step .phone-frame {
+            border: 2.5px solid #212529;
+            border-radius: 14px;
+            background: #212529;
+            padding: 14px 3px 10px;
+            position: relative;
+            height: 170px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+          }
+          .phone-step .phone-frame::before {
+            content: "";
+            position: absolute;
+            top: 4px; left: 50%;
+            transform: translateX(-50%);
+            width: 30px; height: 4px;
+            background: #495057;
+            border-radius: 2px;
+          }
+          .phone-step .phone-screen {
+            background: white;
+            height: 100%;
+            border-radius: 6px;
+            padding: 5px 4px;
+            font-size: 0.6rem;
+            text-align: left;
+            overflow: hidden;
+            position: relative;
+          }
+          .phone-step .ui-bar {
+            background: #f1f3f5;
+            padding: 3px 4px;
+            border-radius: 3px;
+            margin-bottom: 3px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.55rem;
+          }
+          .phone-step .ui-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 3px 4px;
+            margin: 1px 0;
+            border-radius: 3px;
+            font-size: 0.58rem;
+            color: #495057;
+          }
+          .phone-step .ui-row.tap {
+            background: rgba(233, 30, 140, 0.15);
+            outline: 1.5px dashed var(--brand, #E91E8C);
+            font-weight: 700;
+            color: #212529;
+            animation: pulse-tap 2s ease-in-out infinite;
+          }
+          @keyframes pulse-tap {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(233, 30, 140, 0.4); }
+            50% { box-shadow: 0 0 0 4px rgba(233, 30, 140, 0); }
+          }
+          .phone-step .tap-finger {
+            position: absolute;
+            font-size: 1rem;
+          }
+          .phone-step .step-label {
+            margin-top: 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #212529;
+          }
+          .phone-step .step-desc {
+            font-size: 0.65rem;
+            color: #6c757d;
+            line-height: 1.2;
+            margin-top: 2px;
+          }
+          .step-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--brand, #E91E8C);
+            font-size: 1.3rem;
+            padding-top: 60px;
+            flex: 0 0 auto;
+            width: 18px;
+          }
+          .step-num-badge {
+            position: absolute;
+            top: -6px; left: -6px;
+            width: 20px; height: 20px;
+            background: var(--brand, #E91E8C);
+            color: white;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            border: 2px solid white;
+          }
+          .ig-grad { background: linear-gradient(135deg, #feda75 0%, #d62976 60%, #4f5bd5 100%); color: white; }
+          .tt-dark { background: #010101; color: white; }
+          .yt-red { background: #FF0000; color: white; }
+          .guide-section-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #495057;
+            margin: 8px 0 2px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+          }
+          .guide-section-title .badge { font-size: 0.65rem; }
+        </style>
+
+        <div class="row g-3">
+
+          <!-- 1. FOLLOWERS -->
+          <div class="col-md-6">
+            <strong><i class="bi bi-1-circle"></i> Followers</strong>
+            <p class="text-muted mb-1">Total followers saat ini (bukan avg).</p>
+            <div class="profile-preview">
+              <div class="pp-header"><i class="bi bi-instagram"></i> @username_kamu</div>
+              <div class="pp-stats">
+                <div class="pp-stat">
+                  <div class="pp-num">42</div>
+                  <div class="pp-lbl">posts</div>
+                </div>
+                <div class="pp-stat hl">
+                  <div class="pp-num">50,2K</div>
+                  <div class="pp-lbl">followers</div>
+                </div>
+                <div class="pp-stat">
+                  <div class="pp-num">340</div>
+                  <div class="pp-lbl">following</div>
+                </div>
+              </div>
+            </div>
+            <ul class="text-muted small mb-0 mt-2">
+              <li><b>IG:</b> Angka tengah di profil kamu</li>
+              <li><b>TikTok:</b> Profile page → "Followers"</li>
+              <li><b>YouTube:</b> Subscribers di halaman channel</li>
+            </ul>
+          </div>
+
+          <!-- 2. AVG VIEWS -->
+          <div class="col-md-6">
+            <strong><i class="bi bi-2-circle"></i> Avg Views <span class="badge bg-secondary">per post/video</span></strong>
+            <p class="text-muted mb-1">Rata-rata views <b>per konten</b>, bukan total bulanan.</p>
+            <div class="mini-screen">
+              <div class="screen-title"><i class="bi bi-tiktok"></i> TikTok Analytics · 28 hari</div>
+              <div class="screen-row"><span>Video views</span><span>1,2 jt</span></div>
+              <div class="screen-row hl"><span>Avg views/video</span><span>45.200</span></div>
+              <div class="screen-row"><span>Profile views</span><span>8.540</span></div>
+            </div>
+            <ul class="text-muted small mb-0 mt-2">
+              <li><b>TikTok:</b> Creator Tools → Analytics (udah otomatis)</li>
+              <li><b>IG:</b> Insights → rata-rata Reach 10 post terakhir</li>
+              <li><b>YT:</b> Studio → Analytics → Avg views per video</li>
+            </ul>
+          </div>
+
+          <!-- 3. ENGAGEMENT RATE -->
+          <div class="col-md-6">
+            <strong><i class="bi bi-3-circle"></i> Engagement Rate (%)</strong>
+            <p class="text-muted mb-1">Rasio interaksi vs followers. Rumusnya:</p>
+            <div class="formula-box">
+              <div>
+                <span class="f-fraction">
+                  <div class="f-top">Likes + Komentar</div>
+                  <div class="f-bot">Followers</div>
+                </span>
+                <span class="f-op">×</span>
+                <span class="f-num fw-bold">100</span>
+                <span class="f-op">=</span>
+                <span class="fw-bold" style="color:var(--brand, #E91E8C)">ER %</span>
+              </div>
+              <div class="small text-muted mt-2 pt-2 border-top">
+                <b>Contoh:</b> (1.500 + 80) ÷ 50.000 × 100 =
+                <b style="color:var(--brand, #E91E8C)">3,16%</b>
+              </div>
+            </div>
+            <ul class="text-muted small mb-0 mt-2">
+              <li>Normal: <b>IG 1-3%</b>, <b>TikTok 5-9%</b>, <b>YT 3-5%</b></li>
+              <li>TikTok Analytics udah nampilin ER langsung</li>
+            </ul>
+          </div>
+
+          <!-- 4. IMPRESSIONS -->
+          <div class="col-md-6">
+            <strong><i class="bi bi-4-circle"></i> Avg Impressions/Bulan <span class="badge bg-secondary">total per bulan</span></strong>
+            <p class="text-muted mb-1">Total reach <b>akumulasi 30 hari</b>.</p>
+            <div class="mini-screen">
+              <div class="screen-title"><i class="bi bi-instagram"></i> IG Insights · 30 hari terakhir</div>
+              <div class="screen-row hl"><span>Accounts reached</span><span>310.420</span></div>
+              <div class="screen-row"><span>Content interactions</span><span>12.880</span></div>
+              <div class="screen-row"><span>Profile visits</span><span>5.210</span></div>
+            </div>
+            <ul class="text-muted small mb-0 mt-2">
+              <li><b>IG:</b> Insights → Accounts reached (30 hari)</li>
+              <li><b>TikTok:</b> Analytics → Video views (28 hari)</li>
+              <li><b>YouTube:</b> Studio → Views (28 hari)</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ─────────────── STEP-BY-STEP PER PLATFORM ─────────────── -->
+        <hr class="my-3">
+        <h6 class="fw-bold mb-2"><i class="bi bi-compass"></i> Cara Cek Step-by-Step di Tiap Platform</h6>
+        <p class="text-muted mb-2" style="font-size:0.8rem">Buka app platform di HP kamu, ikutin urutan tap berikut:</p>
+
+        <ul class="nav nav-tabs platform-tabs mb-2" role="tablist">
+          <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-ig" type="button"><i class="bi bi-instagram"></i> Instagram</button></li>
+          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-tt" type="button"><i class="bi bi-tiktok"></i> TikTok</button></li>
+          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-yt" type="button"><i class="bi bi-youtube"></i> YouTube</button></li>
+        </ul>
+
+        <div class="tab-content">
+
+          <!-- ═════════ INSTAGRAM ═════════ -->
+          <div class="tab-pane fade show active" id="tab-ig">
+
+            <div class="guide-section-title">📊 Cek Avg Views <span class="badge bg-secondary">per post</span></div>
+            <div class="step-flow">
+
+              <!-- IG Avg Views Step 1 -->
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">1</span>
+                  <div class="phone-screen ig-grad">
+                    <div style="font-weight:700;font-size:0.7rem">@username</div>
+                    <div style="display:flex;justify-content:space-around;margin-top:10px;font-size:0.55rem">
+                      <div><b>42</b><br>posts</div>
+                      <div><b>50,2K</b><br>follwr</div>
+                      <div><b>340</b><br>follwg</div>
+                    </div>
+                    <div class="ui-row tap" style="background:rgba(255,255,255,0.3);color:white;margin-top:12px;border-color:white">☰ Menu</div>
+                    <div style="font-size:0.5rem;opacity:0.9;margin-top:4px;text-align:center">↑ pojok kanan atas</div>
+                  </div>
+                </div>
+                <div class="step-label">Buka Profil</div>
+                <div class="step-desc">Tap ☰ di pojok kanan atas</div>
+              </div>
+
+              <div class="step-arrow"><i class="bi bi-arrow-right"></i></div>
+
+              <!-- IG Avg Views Step 2 -->
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">2</span>
+                  <div class="phone-screen">
+                    <div style="font-weight:700;font-size:0.62rem;margin-bottom:4px">Settings and activity</div>
+                    <div class="ui-row tap">📊 Insights</div>
+                    <div class="ui-row">💾 Saved</div>
+                    <div class="ui-row">🕒 Your activity</div>
+                    <div class="ui-row">🔔 Notifications</div>
+                    <div class="ui-row">⚙️ Settings</div>
+                  </div>
+                </div>
+                <div class="step-label">Tap "Insights"</div>
+                <div class="step-desc">Icon grafik 📊</div>
+              </div>
+
+              <div class="step-arrow"><i class="bi bi-arrow-right"></i></div>
+
+              <!-- IG Avg Views Step 3 -->
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">3</span>
+                  <div class="phone-screen">
+                    <div class="ui-bar"><span style="font-weight:700">Insights</span><span style="color:var(--brand)">Last 30 days ▾</span></div>
+                    <div style="font-size:0.55rem;color:#6c757d;margin-top:4px">Overview</div>
+                    <div class="ui-row">Accounts reached <b>310K</b></div>
+                    <div class="ui-row">Interactions <b>12K</b></div>
+                    <div style="font-size:0.55rem;color:#6c757d;margin-top:3px">Content you shared</div>
+                    <div class="ui-row tap">View all content →</div>
+                  </div>
+                </div>
+                <div class="step-label">Pilih "30 days"</div>
+                <div class="step-desc">Tap "View all content"</div>
+              </div>
+
+              <div class="step-arrow"><i class="bi bi-arrow-right"></i></div>
+
+              <!-- IG Avg Views Step 4 -->
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">4</span>
+                  <div class="phone-screen">
+                    <div class="ui-bar"><span style="font-weight:700">Reels</span><span>Reach ▾</span></div>
+                    <div class="ui-row"><span>🎬 Reel #1</span><b>62.4K</b></div>
+                    <div class="ui-row"><span>🎬 Reel #2</span><b>48.1K</b></div>
+                    <div class="ui-row"><span>🎬 Reel #3</span><b>35.7K</b></div>
+                    <div class="ui-row"><span>🎬 Reel #4</span><b>51.3K</b></div>
+                    <div class="ui-row tap" style="font-size:0.55rem">Σ÷10 = <b style="color:var(--brand)">~45K</b></div>
+                  </div>
+                </div>
+                <div class="step-label">Rata-ratakan</div>
+                <div class="step-desc">Jumlah Reach 10 post ÷ 10</div>
+              </div>
+            </div>
+
+            <div class="guide-section-title">❤️ Cek Engagement Rate <span class="badge bg-secondary">per post</span></div>
+            <div class="step-flow">
+
+              <!-- IG ER Step 1 -->
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">1</span>
+                  <div class="phone-screen">
+                    <div style="background:#212529;height:60%;border-radius:4px;display:flex;align-items:center;justify-content:center;color:white;font-size:0.6rem">📷 Post</div>
+                    <div style="display:flex;gap:6px;margin-top:4px;font-size:0.58rem">
+                      <span>❤️ 1.420</span>
+                      <span>💬 68</span>
+                    </div>
+                    <div class="ui-row tap" style="margin-top:4px">📊 View insights</div>
+                  </div>
+                </div>
+                <div class="step-label">Buka post</div>
+                <div class="step-desc">Tap "View insights"</div>
+              </div>
+
+              <div class="step-arrow"><i class="bi bi-arrow-right"></i></div>
+
+              <!-- IG ER Step 2 -->
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">2</span>
+                  <div class="phone-screen">
+                    <div style="font-weight:700;font-size:0.62rem">Post insights</div>
+                    <div class="ui-row tap">Likes <b>1.420</b></div>
+                    <div class="ui-row tap">Comments <b>68</b></div>
+                    <div class="ui-row tap">Reach <b>42.100</b></div>
+                    <div class="ui-row">Shares 12</div>
+                    <div class="ui-row">Saves 45</div>
+                  </div>
+                </div>
+                <div class="step-label">Catat 3 angka</div>
+                <div class="step-desc">Likes, Comments, Reach</div>
+              </div>
+
+              <div class="step-arrow"><i class="bi bi-arrow-right"></i></div>
+
+              <!-- IG ER Step 3 -->
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">3</span>
+                  <div class="phone-screen" style="background:#fff3f8">
+                    <div style="font-weight:700;font-size:0.6rem;color:var(--brand)">Hitung</div>
+                    <div style="font-size:0.58rem;margin-top:6px;text-align:center">
+                      (1.420 + 68)<br>÷ 42.100<br>× 100
+                    </div>
+                    <div class="ui-row tap" style="justify-content:center;margin-top:6px;font-size:0.8rem">= 3,53%</div>
+                    <div style="font-size:0.5rem;color:#6c757d;text-align:center;margin-top:3px">ulangi 5-10 post, rata-ratakan</div>
+                  </div>
+                </div>
+                <div class="step-label">Rumus</div>
+                <div class="step-desc">(L+K) ÷ Reach × 100</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═════════ TIKTOK ═════════ -->
+          <div class="tab-pane fade" id="tab-tt">
+
+            <div class="guide-section-title">📊 Cek Avg Views + ❤️ Engagement Rate <span class="badge bg-success">langsung otomatis</span></div>
+            <div class="step-flow">
+
+              <!-- TT Step 1 -->
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">1</span>
+                  <div class="phone-screen tt-dark">
+                    <div style="font-weight:700;font-size:0.7rem">@username</div>
+                    <div style="display:flex;justify-content:space-around;margin-top:10px;font-size:0.55rem">
+                      <div><b>340</b><br>Following</div>
+                      <div><b>100K</b><br>Followers</div>
+                      <div><b>2.1M</b><br>Likes</div>
+                    </div>
+                    <div class="ui-row tap" style="background:rgba(255,255,255,0.2);color:white;margin-top:12px;border-color:white">☰</div>
+                    <div style="font-size:0.5rem;opacity:0.9;margin-top:4px;text-align:center">↑ pojok kanan atas</div>
+                  </div>
+                </div>
+                <div class="step-label">Buka Profil</div>
+                <div class="step-desc">Tap ☰ menu</div>
+              </div>
+
+              <div class="step-arrow"><i class="bi bi-arrow-right"></i></div>
+
+              <!-- TT Step 2 -->
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">2</span>
+                  <div class="phone-screen">
+                    <div style="font-weight:700;font-size:0.62rem;margin-bottom:4px">Settings and privacy</div>
+                    <div class="ui-row tap">🛠️ Creator tools</div>
+                    <div class="ui-row">🔒 Privacy</div>
+                    <div class="ui-row">🔔 Notifications</div>
+                    <div class="ui-row">📱 Content preferences</div>
+                    <div class="ui-row">⚙️ General</div>
+                  </div>
+                </div>
+                <div class="step-label">Creator Tools</div>
+                <div class="step-desc">Icon tools 🛠️</div>
+              </div>
+
+              <div class="step-arrow"><i class="bi bi-arrow-right"></i></div>
+
+              <!-- TT Step 3 -->
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">3</span>
+                  <div class="phone-screen">
+                    <div style="font-weight:700;font-size:0.62rem;margin-bottom:4px">Creator tools</div>
+                    <div class="ui-row tap">📈 Analytics</div>
+                    <div class="ui-row">💰 Creator Fund</div>
+                    <div class="ui-row">🎥 LIVE</div>
+                    <div class="ui-row">📚 Creator Academy</div>
+                    <div class="ui-row">🤝 Promote</div>
+                  </div>
+                </div>
+                <div class="step-label">Tap "Analytics"</div>
+                <div class="step-desc">Icon grafik 📈</div>
+              </div>
+
+              <div class="step-arrow"><i class="bi bi-arrow-right"></i></div>
+
+              <!-- TT Step 4 -->
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">4</span>
+                  <div class="phone-screen">
+                    <div class="ui-bar"><span style="font-weight:700">Analytics</span><span style="color:var(--brand)">28 days ▾</span></div>
+                    <div style="font-size:0.55rem;color:#6c757d;margin-top:3px">Content</div>
+                    <div class="ui-row">Video views <b>1,2M</b></div>
+                    <div class="ui-row tap">Avg views/video <b>45.200</b></div>
+                    <div class="ui-row tap">Engagement <b>7,2%</b></div>
+                    <div class="ui-row">Profile views <b>8.540</b></div>
+                  </div>
+                </div>
+                <div class="step-label">Baca angka</div>
+                <div class="step-desc">Avg views + ER udah otomatis!</div>
+              </div>
+            </div>
+
+            <div class="alert alert-success mb-0 small"><i class="bi bi-check-circle"></i> <b>Enak!</b> TikTok langsung ngasih Avg Views dan Engagement Rate tanpa harus ngitung manual.</div>
+          </div>
+
+          <!-- ═════════ YOUTUBE ═════════ -->
+          <div class="tab-pane fade" id="tab-yt">
+
+            <div class="guide-section-title">📊 Cek Avg Views + ❤️ Engagement Rate <span class="badge bg-secondary">YouTube Studio</span></div>
+            <div class="step-flow">
+
+              <!-- YT Step 1 -->
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">1</span>
+                  <div class="phone-screen">
+                    <div class="ui-bar yt-red"><span style="font-weight:700">▶ YT Studio</span><span>👤</span></div>
+                    <div style="font-size:0.55rem;color:#6c757d;margin-top:3px;text-align:center">Buka app / buka:</div>
+                    <div class="ui-row tap" style="font-size:0.55rem;justify-content:center">studio.youtube.com</div>
+                    <div style="font-size:0.5rem;color:#6c757d;margin-top:4px;text-align:center">Login pakai akun channel kamu</div>
+                  </div>
+                </div>
+                <div class="step-label">Buka YT Studio</div>
+                <div class="step-desc">App atau browser</div>
+              </div>
+
+              <div class="step-arrow"><i class="bi bi-arrow-right"></i></div>
+
+              <!-- YT Step 2 -->
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">2</span>
+                  <div class="phone-screen">
+                    <div style="font-weight:700;font-size:0.62rem;margin-bottom:4px">Dashboard</div>
+                    <div class="ui-row">🏠 Home</div>
+                    <div class="ui-row">🎬 Content</div>
+                    <div class="ui-row tap">📊 Analytics</div>
+                    <div class="ui-row">💬 Comments</div>
+                    <div class="ui-row">💵 Monetization</div>
+                  </div>
+                </div>
+                <div class="step-label">Tap "Analytics"</div>
+                <div class="step-desc">Menu kiri</div>
+              </div>
+
+              <div class="step-arrow"><i class="bi bi-arrow-right"></i></div>
+
+              <!-- YT Step 3 -->
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">3</span>
+                  <div class="phone-screen">
+                    <div class="ui-bar"><span style="font-weight:700">Overview</span><span style="color:var(--brand)">28 days ▾</span></div>
+                    <div class="ui-row">Views <b>850K</b></div>
+                    <div class="ui-row">Watch time <b>42K hrs</b></div>
+                    <div class="ui-row">Subscribers <b>+1.2K</b></div>
+                    <div style="font-size:0.55rem;color:#6c757d;margin-top:3px">Video count: 10</div>
+                    <div class="ui-row tap">850K ÷ 10 = <b>85K avg</b></div>
+                  </div>
+                </div>
+                <div class="step-label">Hitung Avg</div>
+                <div class="step-desc">Views ÷ jumlah video</div>
+              </div>
+
+              <div class="step-arrow"><i class="bi bi-arrow-right"></i></div>
+
+              <!-- YT Step 4 -->
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">4</span>
+                  <div class="phone-screen">
+                    <div class="ui-bar"><span style="font-weight:700">Engagement</span></div>
+                    <div class="ui-row">Likes <b>38K</b></div>
+                    <div class="ui-row">Comments <b>4,2K</b></div>
+                    <div class="ui-row">Views <b>850K</b></div>
+                    <div class="ui-row tap" style="font-size:0.55rem">(38K+4,2K)÷850K<br>× 100 = <b>4,96%</b></div>
+                  </div>
+                </div>
+                <div class="step-label">Hitung ER</div>
+                <div class="step-desc">Tab "Engagement"</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-info mt-3 mb-0 small">
+          <i class="bi bi-lightbulb"></i> <b>Tips:</b> Update stats <b>1x per minggu</b> atau <b>tiap awal bulan</b>. Nilai di sini dipake buat auto-kalkulasi rate kamu.
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-bordered mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th style="width:140px">Platform</th>
+              <th>
+                Followers
+                <div class="small text-muted fw-normal">total saat ini</div>
+              </th>
+              <th>
+                Avg Views
+                <div class="small text-muted fw-normal">per post/video</div>
+              </th>
+              <th>
+                Engagement Rate
+                <div class="small text-muted fw-normal">dalam %</div>
+              </th>
+              <th>
+                Impressions
+                <div class="small text-muted fw-normal">total per bulan</div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for platform in platforms %}
+            {% set stats = profile.get_stats(platform) if profile else none %}
+            <tr>
+              <td class="fw-bold">{{ PLATFORM_LABELS[platform] }}</td>
+              <td>
+                <input type="number" class="form-control form-control-sm" name="followers_{{ platform.value }}"
+                       value="{{ stats.followers if stats else 0 }}" min="0"
+                       placeholder="contoh: 50000">
+              </td>
+              <td>
+                <input type="number" class="form-control form-control-sm" name="avg_views_{{ platform.value }}"
+                       value="{{ stats.avg_views if stats else 0 }}" min="0"
+                       placeholder="contoh: 15000">
+              </td>
+              <td>
+                <div class="input-group input-group-sm">
+                  <input type="number" step="0.01" class="form-control form-control-sm" name="er_{{ platform.value }}"
+                         value="{{ '%.2f'|format(stats.engagement_rate * 100) if stats else '0.00' }}"
+                         min="0" max="100" placeholder="contoh: 4.5">
+                  <span class="input-group-text">%</span>
+                </div>
+              </td>
+              <td>
+                <input type="number" class="form-control form-control-sm" name="impressions_{{ platform.value }}"
+                       value="{{ stats.avg_monthly_impressions if stats else 0 }}" min="0"
+                       placeholder="contoh: 300000">
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-footer bg-white small text-muted">
+      <i class="bi bi-info-circle"></i> Tidak pakai platform tertentu? Biarkan angkanya <b>0</b> — platform itu tidak akan muncul di rate card.
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!--                  AFFILIATE PERFORMANCE                  -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="card mb-4">
+    <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-bag-heart"></i> Affiliate Performance <span class="badge bg-warning text-dark ms-1">baru</span></span>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse"
+              data-bs-target="#help-affiliate">
+        <i class="bi bi-question-circle"></i> Cara Isi
+      </button>
+    </div>
+
+    <!-- Affiliate Help (collapsible) -->
+    <div class="collapse" id="help-affiliate">
+      <div class="card-body border-bottom bg-light small">
+        <p class="text-muted mb-2"><b>Affiliate</b> beda dari endorsement — lo dapet komisi dari tiap sale lewat link/produk yang lo promote, bukan fee flat. Data di bawah ini dipake buat nentuin commission rate yang reasonable waktu nego deal.</p>
+
+        <ul class="nav nav-tabs platform-tabs mb-2" role="tablist">
+          <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-aff-tt" type="button"><i class="bi bi-tiktok"></i> TikTok Shop</button></li>
+          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-aff-sp" type="button"><i class="bi bi-bag"></i> Shopee Affiliate</button></li>
+        </ul>
+
+        <div class="tab-content">
+
+          <!-- ═════════ TIKTOK SHOP ═════════ -->
+          <div class="tab-pane fade show active" id="tab-aff-tt">
+
+            <div class="guide-section-title">💰 Cek GMV & Conversion Rate</div>
+            <div class="step-flow">
+
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">1</span>
+                  <div class="phone-screen tt-dark">
+                    <div style="font-weight:700;font-size:0.65rem">Creator Center</div>
+                    <div style="font-size:0.55rem;opacity:0.9;margin-top:6px">Affiliate Dashboard</div>
+                    <div class="ui-row" style="color:white">🛒 My Products</div>
+                    <div class="ui-row tap" style="background:rgba(255,255,255,0.2);color:white;border-color:white">📊 Performance</div>
+                    <div class="ui-row" style="color:white">💰 Earnings</div>
+                  </div>
+                </div>
+                <div class="step-label">Creator Center</div>
+                <div class="step-desc">Affiliate → Performance</div>
+              </div>
+
+              <div class="step-arrow"><i class="bi bi-arrow-right"></i></div>
+
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">2</span>
+                  <div class="phone-screen">
+                    <div class="ui-bar"><span style="font-weight:700">Performance</span><span style="color:var(--brand)">30 days ▾</span></div>
+                    <div class="ui-row tap"><span>Total GMV</span><b>Rp 15jt</b></div>
+                    <div class="ui-row"><span>Orders</span><b>450</b></div>
+                    <div class="ui-row"><span>Clicks</span><b>12.8K</b></div>
+                    <div class="ui-row tap" style="font-size:0.52rem"><span>Conv rate</span><b>3,5%</b></div>
+                  </div>
+                </div>
+                <div class="step-label">Baca GMV + Conv</div>
+                <div class="step-desc">Total GMV ÷ jumlah bulan</div>
+              </div>
+
+              <div class="step-arrow"><i class="bi bi-arrow-right"></i></div>
+
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">3</span>
+                  <div class="phone-screen">
+                    <div class="ui-bar"><span style="font-weight:700">Earnings</span></div>
+                    <div class="ui-row"><span>Total earned</span><b>Rp 1,35jt</b></div>
+                    <div class="ui-row"><span>From GMV</span><b>Rp 15jt</b></div>
+                    <div class="ui-row tap" style="font-size:0.52rem"><span>Avg commission</span><b>9%</b></div>
+                    <div style="font-size:0.5rem;color:#6c757d;margin-top:4px;text-align:center">= 1,35jt ÷ 15jt × 100</div>
+                  </div>
+                </div>
+                <div class="step-label">Hitung Commission</div>
+                <div class="step-desc">Earned ÷ GMV × 100</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═════════ SHOPEE AFFILIATE ═════════ -->
+          <div class="tab-pane fade" id="tab-aff-sp">
+
+            <div class="guide-section-title">💰 Cek GMV & Conversion Rate</div>
+            <div class="step-flow">
+
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">1</span>
+                  <div class="phone-screen" style="background:#ee4d2d;color:white">
+                    <div style="font-weight:700;font-size:0.7rem">Shopee Affiliate</div>
+                    <div style="font-size:0.55rem;opacity:0.95;margin-top:4px">affiliate.shopee.co.id</div>
+                    <div class="ui-row" style="color:white">🏠 Home</div>
+                    <div class="ui-row tap" style="background:rgba(255,255,255,0.25);color:white;border-color:white">📊 Dashboard</div>
+                    <div class="ui-row" style="color:white">💰 Commission</div>
+                    <div class="ui-row" style="color:white">🔗 Links</div>
+                  </div>
+                </div>
+                <div class="step-label">Login Web</div>
+                <div class="step-desc">Dashboard → Statistics</div>
+              </div>
+
+              <div class="step-arrow"><i class="bi bi-arrow-right"></i></div>
+
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">2</span>
+                  <div class="phone-screen">
+                    <div class="ui-bar"><span style="font-weight:700">Statistics</span><span style="color:var(--brand)">30 hari ▾</span></div>
+                    <div class="ui-row tap"><span>Sales Amount</span><b>Rp 8jt</b></div>
+                    <div class="ui-row"><span>Orders</span><b>180</b></div>
+                    <div class="ui-row"><span>Clicks</span><b>9.0K</b></div>
+                    <div class="ui-row tap" style="font-size:0.52rem"><span>Conv rate</span><b>2,0%</b></div>
+                  </div>
+                </div>
+                <div class="step-label">Sales Amount</div>
+                <div class="step-desc">= GMV kamu</div>
+              </div>
+
+              <div class="step-arrow"><i class="bi bi-arrow-right"></i></div>
+
+              <div class="phone-step">
+                <div class="phone-frame">
+                  <span class="step-num-badge">3</span>
+                  <div class="phone-screen">
+                    <div class="ui-bar"><span style="font-weight:700">Commission</span></div>
+                    <div class="ui-row"><span>Commission earned</span><b>Rp 480K</b></div>
+                    <div class="ui-row"><span>From sales</span><b>Rp 8jt</b></div>
+                    <div class="ui-row tap" style="font-size:0.52rem"><span>Avg commission</span><b>6%</b></div>
+                    <div style="font-size:0.5rem;color:#6c757d;margin-top:4px;text-align:center">Shopee: 3-8% tergantung kategori</div>
+                  </div>
+                </div>
+                <div class="step-label">Avg Commission</div>
+                <div class="step-desc">Earned ÷ Sales × 100</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-warning mt-3 mb-0 small">
+          <i class="bi bi-lightbulb"></i> <b>Penting:</b> <b>GMV (Gross Merchandise Value)</b> = total rupiah penjualan via link kamu, <b>bukan</b> komisi yang lo terima. Conversion rate 1-3% udah bagus untuk mass market, 3-5%+ = audiens-match tinggi.
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-bordered mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th style="width:150px">Platform Affiliate</th>
+              <th style="width:70px">Aktif</th>
+              <th>
+                Avg GMV/Bulan
+                <div class="small text-muted fw-normal">total sales via link (Rp)</div>
+              </th>
+              <th>
+                Conversion Rate
+                <div class="small text-muted fw-normal">% klik yang beli</div>
+              </th>
+              <th>
+                Avg Commission
+                <div class="small text-muted fw-normal">% yang lo dapet</div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ap in affiliate_platforms %}
+            {% set aff = profile.get_affiliate_stats(ap) if profile else none %}
+            <tr>
+              <td class="fw-bold">
+                {% if ap.value == 'tiktok_shop' %}<i class="bi bi-tiktok"></i>{% else %}<i class="bi bi-bag"></i>{% endif %}
+                {{ AFFILIATE_PLATFORM_LABELS[ap] }}
+              </td>
+              <td class="text-center">
+                <div class="form-check form-switch d-flex justify-content-center">
+                  <input class="form-check-input" type="checkbox" name="aff_enabled_{{ ap.value }}"
+                         {% if aff and aff.enabled %}checked{% elif not aff %}checked{% endif %}>
+                </div>
+              </td>
+              <td>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text">Rp</span>
+                  <input type="number" class="form-control form-control-sm" name="aff_gmv_{{ ap.value }}"
+                         value="{{ aff.avg_monthly_gmv if aff else 0 }}" min="0"
+                         placeholder="contoh: 15000000">
+                </div>
+              </td>
+              <td>
+                <div class="input-group input-group-sm">
+                  <input type="number" step="0.01" class="form-control form-control-sm" name="aff_conv_{{ ap.value }}"
+                         value="{{ '%.2f'|format(aff.avg_conversion_rate * 100) if aff else '0.00' }}"
+                         min="0" max="100" placeholder="contoh: 3.5">
+                  <span class="input-group-text">%</span>
+                </div>
+              </td>
+              <td>
+                <div class="input-group input-group-sm">
+                  <input type="number" step="0.01" class="form-control form-control-sm" name="aff_comm_{{ ap.value }}"
+                         value="{{ '%.2f'|format(aff.avg_commission_pct * 100) if aff else '0.00' }}"
+                         min="0" max="50" placeholder="contoh: 8.0">
+                  <span class="input-group-text">%</span>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Categories -->
+      <div class="p-3 border-top">
+        <label class="form-label fw-bold small"><i class="bi bi-tags"></i> Kategori Produk Unggulan <span class="text-muted fw-normal">(pilih yang biasa lo promote)</span></label>
+        <div class="d-flex flex-wrap gap-2">
+          {% for cat in AFFILIATE_CATEGORIES %}
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" id="cat_{{ loop.index }}"
+                   name="affiliate_categories" value="{{ cat }}"
+                   {% if profile and cat in profile.affiliate_categories %}checked{% endif %}>
+            <label class="form-check-label small" for="cat_{{ loop.index }}">{{ cat }}</label>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="small text-muted mt-2"><i class="bi bi-info-circle"></i> Kategori ini dipake buat positioning rate — kategori "Tech & Beauty" biasanya commission lebih tinggi dari "Food".</div>
+      </div>
+    </div>
+    <div class="card-footer bg-white small text-muted">
+      <i class="bi bi-info-circle"></i> Ga pake affiliate? Biarin <b>GMV = 0</b> dan matiin switch-nya.
+    </div>
+  </div>
+
+  <button type="submit" class="btn px-4" style="background:var(--brand);color:white;">
+    <i class="bi bi-save"></i> Simpan
+  </button>
+  <a href="/" class="btn btn-outline-secondary ms-2">Batal</a>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelector('input[type=color]').addEventListener('input', function() {
+    document.getElementById('color_preview').value = this.value;
+    document.documentElement.style.setProperty('--brand', this.value);
+  });
+</script>
+{% endblock %}

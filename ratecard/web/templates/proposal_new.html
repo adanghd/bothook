@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h3 class="fw-bold mb-4"><i class="bi bi-plus-circle"></i> Buat Proposal Baru</h3>
+
+<form method="POST">
+  <div class="row g-4">
+    <!-- Left: Form -->
+    <div class="col-lg-7">
+
+      <!-- Client Info -->
+      <div class="card mb-4">
+        <div class="card-header fw-bold"><i class="bi bi-building"></i> Info Klien</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Nama Klien <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="client_name" required placeholder="Brand ABC">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Nama Perusahaan</label>
+              <input type="text" class="form-control" name="client_company" placeholder="PT Brand Indonesia">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Email Klien</label>
+              <input type="email" class="form-control" name="client_email" placeholder="marketing@brand.id">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Nama Campaign <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="campaign_name" required placeholder="Ramadan Campaign 2025">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pricing Model -->
+      <div class="card mb-4">
+        <div class="card-header fw-bold"><i class="bi bi-cash-stack"></i> Model Pricing</div>
+        <div class="card-body">
+          <p class="small text-muted mb-3">Pilih bagaimana klien akan bayar. Klik untuk lihat field yang dibutuhkan.</p>
+          <div class="row g-2">
+            {% for pm in pricing_models %}
+            <div class="col-md-4">
+              <input type="radio" class="btn-check" name="pricing_model" id="pm_{{ pm.value }}"
+                     value="{{ pm.value }}" {% if pm.value == 'flat' %}checked{% endif %}
+                     onchange="togglePricingSections()">
+              <label class="btn btn-outline-secondary w-100 text-start" for="pm_{{ pm.value }}">
+                <strong class="d-block">
+                  {% if pm.value == 'flat' %}💵 Flat Fee
+                  {% elif pm.value == 'commission' %}🤝 Commission Only
+                  {% else %}🔀 Hybrid{% endif %}
+                </strong>
+                <small class="text-muted">
+                  {% if pm.value == 'flat' %}Bayar di depan, satu harga
+                  {% elif pm.value == 'commission' %}% dari GMV yang terjual
+                  {% else %}Base fee + komisi{% endif %}
+                </small>
+              </label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Package Config (for FLAT and HYBRID) -->
+      <div class="card mb-4" id="section-package">
+        <div class="card-header fw-bold"><i class="bi bi-layers"></i> Konfigurasi Paket Endorsement</div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">Tier Paket</label>
+            <div class="d-flex gap-2">
+              {% for tier in tiers %}
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="tier" id="tier_{{ tier.value }}"
+                       value="{{ tier.value }}" {% if tier.value == 'Silver' %}checked{% endif %}
+                       onchange="updatePreview()">
+                <label class="form-check-label" for="tier_{{ tier.value }}">
+                  {% if tier.value == 'Bronze' %}🥉{% elif tier.value == 'Silver' %}🥈{% else %}🥇{% endif %}
+                  {{ tier.value }}
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Platform (bisa pilih lebih dari 1)</label>
+            <div class="row g-2">
+              {% for platform in platforms %}
+              <div class="col-6 col-md-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="platforms"
+                         value="{{ platform.value }}" id="plat_{{ platform.value }}"
+                         onchange="updatePreview()">
+                  <label class="form-check-label" for="plat_{{ platform.value }}">
+                    {{ PLATFORM_LABELS[platform] }}
+                  </label>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Diskon Klien (%)</label>
+            <div class="input-group">
+              <input type="number" class="form-control" name="client_discount" value="0"
+                     min="0" max="100" step="1" onchange="updatePreview()">
+              <span class="input-group-text">%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Affiliate Deal Config (for COMMISSION and HYBRID) -->
+      <div class="card mb-4" id="section-affiliate" style="display:none; border:2px solid var(--brand);">
+        <div class="card-header fw-bold" style="background:var(--brand);color:white;">
+          <i class="bi bi-bag-heart"></i> Konfigurasi Affiliate Deal
+        </div>
+        <div class="card-body">
+          {% if profile.has_affiliate %}
+          <div class="mb-3">
+            <label class="form-label">Platform Affiliate</label>
+            <select class="form-select" name="aff_deal_platform" onchange="applyAffSuggestion()" id="aff_deal_platform">
+              {% for aff in profile.affiliate_stats %}
+                {% if aff.enabled and aff.avg_monthly_gmv > 0 %}
+                <option value="{{ aff.platform.value }}">{{ AFFILIATE_PLATFORM_LABELS[aff.platform] }} — GMV bln Rp {{ "{:,}".format(aff.avg_monthly_gmv).replace(",", ".") }}</option>
+                {% endif %}
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Suggestion box -->
+          <div class="alert alert-light border mb-3" id="aff-suggestion-box">
+            <small class="text-muted d-block mb-1"><i class="bi bi-lightbulb text-warning"></i> Rekomendasi berdasarkan stats lo:</small>
+            <div class="row text-center g-2 small">
+              <div class="col-4">
+                <strong id="aff-sug-target" style="color:var(--brand)">-</strong>
+                <div class="text-muted">Target komisi</div>
+              </div>
+              <div class="col-4">
+                <strong id="aff-sug-basefee">-</strong>
+                <div class="text-muted">Base fee</div>
+              </div>
+              <div class="col-4">
+                <strong id="aff-sug-earning">-</strong>
+                <div class="text-muted">Est. earning/bln</div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="fillFromSuggestion()">
+              <i class="bi bi-magic"></i> Pakai rekomendasi
+            </button>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Komisi (%) <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <input type="number" class="form-control" name="commission_pct" id="commission_pct"
+                       value="10" min="1" max="50" step="0.5" required>
+                <span class="input-group-text">%</span>
+              </div>
+              <small class="text-muted">% dari GMV yang kamu bantu jualin</small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Base Fee (Rp) <span class="badge bg-secondary">Hybrid only</span></label>
+              <div class="input-group">
+                <span class="input-group-text">Rp</span>
+                <input type="number" class="form-control" name="aff_base_fee" id="aff_base_fee"
+                       value="0" min="0" step="100000">
+              </div>
+              <small class="text-muted">Flat upfront, lalu + komisi. Kosongkan jika pure commission.</small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Durasi Deal (hari)</label>
+              <input type="number" class="form-control" name="aff_duration_days" value="30" min="7" max="365">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Min. Campaign Value / GMV Target (Rp)</label>
+              <div class="input-group">
+                <span class="input-group-text">Rp</span>
+                <input type="number" class="form-control" name="aff_min_campaign" id="aff_min_campaign"
+                       value="0" min="0" step="500000">
+              </div>
+              <small class="text-muted">Kalau 0 → pakai avg GMV bulanan sebagai proyeksi</small>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Kategori Produk yang Di-cover</label>
+              <div class="row g-1">
+                {% for cat in AFFILIATE_CATEGORIES %}
+                <div class="col-md-4 col-sm-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="aff_deal_categories"
+                           value="{{ cat }}" id="aff_cat_{{ loop.index }}"
+                           {% if profile.affiliate_categories and cat in profile.affiliate_categories %}checked{% endif %}>
+                    <label class="form-check-label small" for="aff_cat_{{ loop.index }}">{{ cat }}</label>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="alert alert-warning mb-0">
+            <i class="bi bi-exclamation-triangle"></i> Lo belum setup affiliate stats.
+            <a href="/profile" class="alert-link">Isi dulu di profil</a> biar bisa pakai model Commission / Hybrid.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="card mb-4">
+        <div class="card-header fw-bold"><i class="bi bi-chat-left-text"></i> Catatan</div>
+        <div class="card-body">
+          <textarea class="form-control" name="notes" rows="3"
+                    placeholder="Catatan khusus untuk klien ini..."></textarea>
+        </div>
+      </div>
+
+      <button type="submit" class="btn px-4" style="background:var(--brand);color:white;">
+        <i class="bi bi-save"></i> Simpan Proposal
+      </button>
+      <a href="/proposals" class="btn btn-outline-secondary ms-2">Batal</a>
+    </div>
+
+    <!-- Right: Preview -->
+    <div class="col-lg-5">
+      <div class="card sticky-top" style="top:80px">
+        <div class="card-header fw-bold"><i class="bi bi-eye"></i> Preview Harga</div>
+        <div class="card-body" id="price-preview">
+          {% for pkg in packages_preview %}
+          <div class="preview-tier mb-3" data-tier="{{ pkg.tier.value }}">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="badge badge-{{ pkg.tier.value.lower() }} me-2">{{ pkg.tier.value }}</span>
+              <strong class="price-big" id="price_{{ pkg.tier.value }}">{{ format_idr(pkg.final_price) }}</strong>
+            </div>
+            <ul class="list-unstyled small text-muted mt-1 mb-0 ps-1">
+              {% for item in pkg.items %}
+              <li><i class="bi bi-dot"></i>{{ item.content_type.value.replace('_',' ').title() }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endfor %}
+          <hr>
+          <small class="text-muted">Harga berdasarkan stats aktif. Pilih platform untuk melihat breakdown.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<script>
+  // Affiliate suggestions dict injected from Flask
+  const AFF_SUGGESTIONS = {{ affiliate_suggestions|tojson if affiliate_suggestions else '{}' }};
+
+  function formatIDR(n) {
+    if (n == null) return '-';
+    return 'Rp ' + Math.round(n).toLocaleString('id-ID').replace(/,/g, '.');
+  }
+
+  function togglePricingSections() {
+    const model = document.querySelector('input[name="pricing_model"]:checked').value;
+    const pkgSection = document.getElementById('section-package');
+    const affSection = document.getElementById('section-affiliate');
+    if (model === 'flat') {
+      pkgSection.style.display = '';
+      affSection.style.display = 'none';
+    } else if (model === 'commission') {
+      pkgSection.style.display = 'none';
+      affSection.style.display = '';
+    } else { // hybrid
+      pkgSection.style.display = '';
+      affSection.style.display = '';
+    }
+    applyAffSuggestion();
+  }
+
+  function applyAffSuggestion() {
+    const sel = document.getElementById('aff_deal_platform');
+    if (!sel) return;
+    const plat = sel.value;
+    const sug = AFF_SUGGESTIONS[plat];
+    if (!sug) return;
+    document.getElementById('aff-sug-target').textContent = (sug.commission_target_pct * 100).toFixed(1) + '%';
+    document.getElementById('aff-sug-basefee').textContent = formatIDR(sug.base_fee_suggested);
+    document.getElementById('aff-sug-earning').textContent = formatIDR(sug.projected_monthly_earning_target);
+  }
+
+  function fillFromSuggestion() {
+    const sel = document.getElementById('aff_deal_platform');
+    if (!sel) return;
+    const sug = AFF_SUGGESTIONS[sel.value];
+    if (!sug) return;
+    document.getElementById('commission_pct').value = (sug.commission_target_pct * 100).toFixed(1);
+    const model = document.querySelector('input[name="pricing_model"]:checked').value;
+    // Only fill base_fee for hybrid
+    if (model === 'hybrid') {
+      document.getElementById('aff_base_fee').value = Math.round(sug.base_fee_suggested);
+    }
+    document.getElementById('aff_min_campaign').value = Math.round(sug.min_campaign_value);
+  }
+
+  // Init on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    togglePricingSections();
+    applyAffSuggestion();
+  });
+</script>
+
+{% endblock %}

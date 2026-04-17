@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rate Card Manager{% if title %} — {{ title }}{% endif %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root {
+      --brand: #E91E8C;
+      --brand-light: #fff0f8;
+      --brand-dark: #c4167a;
+      --grad-start: #E91E8C;
+      --grad-end: #7B2FF7;
+      --surface: #f8f9fc;
+      --card-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      --card-hover: 0 6px 24px rgba(0,0,0,0.10);
+    }
+    body { background: var(--surface); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+
+    /* Navbar */
+    .navbar-custom {
+      background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+      box-shadow: 0 2px 16px rgba(233,30,140,0.2);
+    }
+    .navbar-custom .navbar-brand { color: #fff !important; font-weight: 800; font-size: 1.25rem; letter-spacing: -0.5px; }
+    .navbar-custom .nav-link { color: rgba(255,255,255,0.85) !important; font-weight: 500; transition: all 0.2s; border-radius: 8px; padding: 0.4rem 0.75rem !important; }
+    .navbar-custom .nav-link:hover { color: #fff !important; background: rgba(255,255,255,0.15); }
+    .navbar-custom .nav-link.active { color: #fff !important; background: rgba(255,255,255,0.25); font-weight: 700; }
+    .navbar-toggler { border-color: rgba(255,255,255,0.5); }
+    .navbar-toggler-icon { filter: brightness(0) invert(1); }
+
+    /* Cards */
+    .card { border: none; border-radius: 12px; box-shadow: var(--card-shadow); transition: box-shadow 0.2s, transform 0.2s; }
+    .card:hover { box-shadow: var(--card-hover); }
+    .card-header { border-bottom: 1px solid rgba(0,0,0,0.06); }
+
+    /* Stat cards */
+    .stat-card { border-left: 4px solid var(--brand); border-radius: 12px; }
+    .stat-card .stat-value { font-size: 1.35rem; font-weight: 700; color: #1a1a2e; }
+    .stat-card .stat-label { font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Tier headers */
+    .tier-header-bronze { background: linear-gradient(135deg, #CD7F32, #E8A850); color: white; border-radius: 12px 12px 0 0; }
+    .tier-header-silver { background: linear-gradient(135deg, #8E9AAF, #B8C4D4); color: white; border-radius: 12px 12px 0 0; }
+    .tier-header-gold   { background: linear-gradient(135deg, #D4AF37, #F0D060); color: white; border-radius: 12px 12px 0 0; }
+
+    /* Badges */
+    .badge-bronze { background: linear-gradient(135deg, #CD7F32, #E8A850); }
+    .badge-silver { background: linear-gradient(135deg, #8E9AAF, #B8C4D4); }
+    .badge-gold   { background: linear-gradient(135deg, #D4AF37, #F0D060); }
+
+    /* Price */
+    .price-big { font-size: 1.5rem; font-weight: 800; color: var(--brand); }
+
+    /* Tab pills */
+    .nav-pills .nav-link {
+      border-radius: 50px;
+      padding: 0.5rem 1.5rem;
+      font-weight: 600;
+      color: #555;
+      background: #eee;
+      transition: all 0.3s;
+    }
+    .nav-pills .nav-link.active {
+      background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+      color: white;
+      box-shadow: 0 4px 12px rgba(233,30,140,0.3);
+    }
+    .nav-pills .nav-link:not(.active):hover { background: #ddd; color: #333; }
+
+    /* Tables */
+    .table { border-collapse: separate; border-spacing: 0; }
+    .table thead th { border-bottom: 2px solid var(--brand); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: #555; }
+    .table-hover tbody tr:hover { background-color: var(--brand-light); }
+
+    /* Buttons */
+    .btn-brand { background: linear-gradient(135deg, var(--grad-start), var(--grad-end)); color: white; border: none; font-weight: 600; transition: all 0.2s; }
+    .btn-brand:hover { color: white; box-shadow: 0 4px 12px rgba(233,30,140,0.3); transform: translateY(-1px); }
+    .btn-outline-brand { border: 2px solid var(--brand); color: var(--brand); font-weight: 600; background: transparent; }
+    .btn-outline-brand:hover { background: var(--brand); color: white; }
+
+    /* Section title */
+    .section-title { font-weight: 700; font-size: 1.1rem; color: #1a1a2e; margin-bottom: 1rem; }
+    .section-title i { color: var(--brand); }
+
+    /* Perk badges */
+    .perk-badge { font-size: 0.7rem; background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; border-radius: 50px; padding: 0.2rem 0.6rem; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+
+    /* Addon inline form */
+    .addon-row { background: #fff; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; border: 1px solid #eee; transition: all 0.2s; }
+    .addon-row:hover { border-color: var(--brand); background: var(--brand-light); }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-custom mb-4">
+  <div class="container">
+    <a class="navbar-brand" href="/"><i class="bi bi-graph-up-arrow me-1"></i>Rate Card Manager</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav ms-auto gap-1">
+        <li class="nav-item">
+          <a class="nav-link {% if active == 'dashboard' %}active{% endif %}" href="/">
+            <i class="bi bi-house-fill"></i> Dashboard
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if active == 'profile' %}active{% endif %}" href="/profile">
+            <i class="bi bi-person-circle"></i> Profil
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if active == 'ratecard' %}active{% endif %}" href="/ratecard">
+            <i class="bi bi-card-list"></i> Rate Card
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if active == 'proposals' %}active{% endif %}" href="/proposals">
+            <i class="bi bi-file-earmark-text"></i> Proposal
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/export/xlsx">
+            <i class="bi bi-file-earmark-excel"></i> Excel
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container pb-5">
+  {% block content %}{% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

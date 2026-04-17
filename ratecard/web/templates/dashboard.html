@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="fw-bold mb-0">Dashboard</h3>
+    {% if profile %}
+      <p class="text-muted mb-0">{{ profile.name }} — {{ profile.niche }}</p>
+    {% else %}
+      <div class="alert alert-warning mt-2 mb-0 py-2">
+        Profil belum diisi. <a href="/profile" class="alert-link">Isi sekarang</a>
+      </div>
+    {% endif %}
+  </div>
+  <div class="d-flex gap-2">
+    <a href="/proposal/new" class="btn btn-brand btn-sm">
+      <i class="bi bi-plus-lg"></i> Buat Proposal
+    </a>
+    <a href="/ratecard/pdf" class="btn btn-outline-brand btn-sm">
+      <i class="bi bi-download"></i> PDF
+    </a>
+  </div>
+</div>
+
+{% if profile %}
+<!-- Tab Navigation -->
+<ul class="nav nav-pills mb-4" id="dashTab" role="tablist">
+  <li class="nav-item me-2">
+    <button class="nav-link active" id="influencer-tab" data-bs-toggle="pill" data-bs-target="#influencer" type="button" role="tab">
+      <i class="bi bi-camera-reels me-1"></i> Influencer
+    </button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" id="affiliate-tab" data-bs-toggle="pill" data-bs-target="#affiliate" type="button" role="tab">
+      <i class="bi bi-bag-heart me-1"></i> Affiliate
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content" id="dashTabContent">
+  <!-- ═══════════ INFLUENCER TAB ═══════════ -->
+  <div class="tab-pane fade show active" id="influencer" role="tabpanel">
+
+    <!-- Platform Stats Cards -->
+    {% set active_stats = profile.platform_stats|selectattr('followers', 'gt', 0)|list %}
+    {% if active_stats %}
+    <h6 class="section-title"><i class="bi bi-bar-chart-fill"></i> Platform Stats</h6>
+    <div class="row g-3 mb-4">
+      {% for stats in active_stats %}
+      <div class="col-md-4 col-sm-6">
+        <div class="card stat-card h-100">
+          <div class="card-body py-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="fw-bold">
+                {% if stats.platform.value == 'instagram' %}<i class="bi bi-instagram text-danger"></i>
+                {% elif stats.platform.value == 'tiktok' %}<i class="bi bi-tiktok"></i>
+                {% elif stats.platform.value == 'youtube' %}<i class="bi bi-youtube text-danger"></i>
+                {% elif stats.platform.value == 'twitter' %}<i class="bi bi-twitter-x"></i>
+                {% elif stats.platform.value == 'linkedin' %}<i class="bi bi-linkedin text-primary"></i>
+                {% elif stats.platform.value == 'facebook' %}<i class="bi bi-facebook text-primary"></i>
+                {% endif %}
+                {{ PLATFORM_LABELS[stats.platform] }}
+              </span>
+              <small class="text-muted">{{ stats.last_updated.strftime('%d/%m') }}</small>
+            </div>
+            <div class="row text-center g-0">
+              <div class="col-4">
+                <div class="stat-value">{{ "{:,}".format(stats.followers).replace(",", ".") }}</div>
+                <div class="stat-label">Followers</div>
+              </div>
+              <div class="col-4">
+                <div class="stat-value" style="color:var(--brand)">{{ "%.1f"|format(stats.engagement_rate * 100) }}%</div>
+                <div class="stat-label">ER</div>
+              </div>
+              <div class="col-4">
+                <div class="stat-value">{{ "{:,}".format(stats.avg_views).replace(",", ".") }}</div>
+                <div class="stat-label">Avg Views</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-light border text-center py-4 mb-4">
+      <i class="bi bi-bar-chart text-muted fs-1 d-block mb-2"></i>
+      <p class="mb-1">Belum ada stats platform.</p>
+      <a href="/profile" class="btn btn-brand btn-sm mt-1">Setup Stats</a>
+    </div>
+    {% endif %}
+
+    <!-- Endorsement Packages -->
+    {% if packages %}
+    <h6 class="section-title"><i class="bi bi-box-seam-fill"></i> Paket Endorsement</h6>
+    <div class="row g-3 mb-4">
+      {% for pkg in packages %}
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-header tier-header-{{ pkg.tier.value.lower() }} text-center py-3">
+            <div class="fw-bold fs-5">
+              {% if pkg.tier.value == 'Bronze' %}🥉{% elif pkg.tier.value == 'Silver' %}🥈{% else %}🥇{% endif %}
+              {{ pkg.name }}
+            </div>
+          </div>
+          <div class="card-body text-center">
+            <div class="price-big mb-2">{{ format_idr(pkg.final_price) }}</div>
+            {% if pkg.bundle_discount_pct > 0 %}
+              <span class="badge bg-success bg-opacity-10 text-success border mb-2">
+                <i class="bi bi-tag"></i> Bundle {{ (pkg.bundle_discount_pct * 100)|int }}% off
+              </span>
+            {% endif %}
+            <hr class="my-2">
+            <ul class="list-unstyled text-start small mb-0">
+              {% for item in pkg.items %}
+              <li class="py-1"><i class="bi bi-check-circle-fill text-success me-1"></i> {{ CONTENT_TYPE_LABELS.get(item.content_type, item.content_type.value) }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% set tier_bonus = TIER_BONUSES.get(pkg.tier, {}) %}
+          {% if tier_bonus.get('perks') %}
+          <div class="px-3 pb-2">
+            {% for perk in tier_bonus.perks %}
+            <span class="perk-badge me-1 mb-1 d-inline-block">{{ perk }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+          <div class="card-footer bg-transparent text-muted small text-center border-0">
+            <i class="bi bi-clock"></i> Valid {{ pkg.valid_days }} hari
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- ═══════════ AFFILIATE TAB ═══════════ -->
+  <div class="tab-pane fade" id="affiliate" role="tabpanel">
+
+    {% if profile.has_affiliate %}
+    <h6 class="section-title"><i class="bi bi-graph-up-arrow"></i> Affiliate Performance</h6>
+    <div class="row g-3 mb-4">
+      {% for aff in profile.affiliate_stats %}
+        {% if aff.enabled and aff.avg_monthly_gmv > 0 %}
+        <div class="col-md-6">
+          <div class="card h-100" style="border-left:4px solid var(--grad-end);">
+            <div class="card-body py-3">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="fw-bold fs-5">
+                  {% if aff.platform.value == 'tiktok_shop' %}<i class="bi bi-tiktok"></i>{% else %}<i class="bi bi-bag-fill"></i>{% endif %}
+                  {{ AFFILIATE_PLATFORM_LABELS[aff.platform] }}
+                </span>
+                <small class="text-muted">{{ aff.last_updated.strftime('%d/%m/%y') }}</small>
+              </div>
+              <div class="row text-center g-2">
+                <div class="col-4">
+                  <div class="stat-value" style="color:var(--brand)">{{ format_idr(aff.avg_monthly_gmv) }}</div>
+                  <div class="stat-label">GMV / Bulan</div>
+                </div>
+                <div class="col-4">
+                  <div class="stat-value">{{ "%.2f"|format(aff.avg_conversion_rate * 100) }}%</div>
+                  <div class="stat-label">Conv Rate</div>
+                </div>
+                <div class="col-4">
+                  <div class="stat-value">{{ "%.1f"|format(aff.avg_commission_pct * 100) }}%</div>
+                  <div class="stat-label">Avg Komisi</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    {% if profile.affiliate_categories %}
+    <div class="mb-4">
+      <small class="text-muted"><i class="bi bi-tags-fill"></i> Kategori unggulan:</small>
+      {% for cat in profile.affiliate_categories %}
+        <span class="badge bg-white border text-dark ms-1">{{ cat }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Affiliate Rate Suggestions -->
+    {% if affiliate_suggestions %}
+    <h6 class="section-title"><i class="bi bi-calculator-fill"></i> Rekomendasi Rate Affiliate</h6>
+    <div class="row g-3 mb-4">
+      {% for aff in profile.affiliate_stats %}
+        {% if aff.enabled and aff.avg_monthly_gmv > 0 and affiliate_suggestions.get(aff.platform.value) %}
+          {% set sug = affiliate_suggestions[aff.platform.value] %}
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header bg-white fw-bold">
+                {% if aff.platform.value == 'tiktok_shop' %}<i class="bi bi-tiktok"></i>{% else %}<i class="bi bi-bag-fill"></i>{% endif %}
+                {{ AFFILIATE_PLATFORM_LABELS[aff.platform] }} — Commission Rate
+              </div>
+              <div class="card-body">
+                <div class="row g-2 mb-3">
+                  <div class="col-4">
+                    <div class="text-center p-2 rounded" style="background:#f5f5f5;">
+                      <div class="stat-label">Min</div>
+                      <div class="fw-bold fs-5">{{ "%.1f"|format(sug.commission_min_pct * 100) }}%</div>
+                    </div>
+                  </div>
+                  <div class="col-4">
+                    <div class="text-center p-2 rounded" style="background:var(--brand-light);border:2px solid var(--brand);">
+                      <div class="stat-label">Target</div>
+                      <div class="fw-bold fs-5" style="color:var(--brand)">{{ "%.1f"|format(sug.commission_target_pct * 100) }}%</div>
+                    </div>
+                  </div>
+                  <div class="col-4">
+                    <div class="text-center p-2 rounded" style="background:#f5f5f5;">
+                      <div class="stat-label">Max</div>
+                      <div class="fw-bold fs-5">{{ "%.1f"|format(sug.commission_max_pct * 100) }}%</div>
+                    </div>
+                  </div>
+                </div>
+                <table class="table table-sm table-borderless mb-0 small">
+                  <tr>
+                    <td class="text-muted">Est. Earning/bln</td>
+                    <td class="text-end fw-bold" style="color:var(--brand)">{{ format_idr(sug.projected_monthly_earning_target) }}</td>
+                  </tr>
+                  <tr>
+                    <td class="text-muted">Base Fee</td>
+                    <td class="text-end">{{ format_idr(sug.base_fee_suggested) }}</td>
+                  </tr>
+                  <tr>
+                    <td class="text-muted">Min. Campaign GMV</td>
+                    <td class="text-end">{{ format_idr(sug.min_campaign_value) }}</td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="alert alert-light border text-center py-4">
+      <i class="bi bi-bag-x text-muted fs-1 d-block mb-2"></i>
+      <p class="mb-1">Belum ada data affiliate.</p>
+      <a href="/profile" class="btn btn-brand btn-sm mt-1">Setup Affiliate Stats</a>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endif %}
+
+<!-- Recent Proposals (always visible) -->
+<div class="mt-2">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h6 class="section-title mb-0"><i class="bi bi-file-earmark-text-fill"></i> Proposal Terbaru</h6>
+    <a href="/proposals" class="small text-decoration-none" style="color:var(--brand)">Lihat semua <i class="bi bi-arrow-right"></i></a>
+  </div>
+  {% if proposals %}
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>#</th><th>Klien</th><th>Campaign</th><th>Total</th><th>Status</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in proposals %}
+          <tr>
+            <td class="text-muted small">{{ p.id }}</td>
+            <td>
+              <strong>{{ p.client_name }}</strong>
+              {% if p.client_company %}<br><small class="text-muted">{{ p.client_company }}</small>{% endif %}
+            </td>
+            <td>{{ p.campaign_name }}</td>
+            <td class="fw-bold" style="color:var(--brand)">{{ format_idr(p.total_price) }}</td>
+            <td>
+              {% set badge_map = {'draft': 'secondary', 'sent': 'primary', 'accepted': 'success', 'rejected': 'danger'} %}
+              <span class="badge bg-{{ badge_map.get(p.status.value, 'secondary') }} rounded-pill">{{ p.status.value }}</span>
+            </td>
+            <td>
+              <a href="/proposal/{{ p.id }}" class="btn btn-sm btn-outline-brand py-0 px-2">
+                <i class="bi bi-eye"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="card text-center py-4">
+    <div class="card-body">
+      <i class="bi bi-file-earmark-plus text-muted fs-1 d-block mb-2"></i>
+      <p class="text-muted mb-2">Belum ada proposal.</p>
+      <a href="/proposal/new" class="btn btn-brand btn-sm">Buat Proposal Pertama</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
